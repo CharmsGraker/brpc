@@ -4,9 +4,69 @@
 #ifndef STUB_GENERATOR_CLAZZ_H
 #define STUB_GENERATOR_CLAZZ_H
 
-int PUBLIC_ACCESS = 0;
-int PRIVATE_ACCESS = 1;
-int PROTECTED_ACCESS = 2;
+namespace ACCESS {
+    class var {
+    public:
+        int v;
+        var(int x = 0) : v(x) {}
+
+        std::string toString();
+
+        bool operator==(ACCESS::var &v2) {
+            return v == v2.v;
+        }
+
+        bool operator!=(ACCESS::var &v2) {
+            return v != v2.v;
+        }
+    } PUBLIC(0), PRIVATE(1), PROTECTED(2);
+
+    std::string var::toString() {
+        auto &o = *this;
+        if (o == ACCESS::PUBLIC) {
+            return "public";
+        } else if (o == ACCESS::PRIVATE) {
+            return "private";
+        } else if (o == ACCESS::PROTECTED) {
+            return "protected";
+        } else {
+            abort();
+        }
+    }
+
+};
+namespace REFERENCE_TYPE {
+    class var {
+    public:
+        int v;
+
+        var(int x = 0) : v(x) {}
+
+        std::string toString();
+
+        bool operator==(REFERENCE_TYPE::var &v2) {
+            return v == v2.v;
+        }
+
+        bool operator!=(REFERENCE_TYPE::var &v2) {
+            return v != v2.v;
+        }
+    } DEFAULT(0), POINTER(1), REFERENCE(2), RIGHT_REFERENCE(3);
+
+    std::string var::toString() {
+        auto &o = *this;
+        if (o == REFERENCE_TYPE::DEFAULT) {
+            return "";
+        } else if (o == REFERENCE_TYPE::POINTER) {
+            return "*";
+        } else if (o == REFERENCE_TYPE::REFERENCE) {
+            return "&";
+        } else if (o == REFERENCE_TYPE::RIGHT_REFERENCE) {
+            return "&&";
+        }
+        return "";
+    }
+};
 
 struct Clazz {
     std::string classpath;
@@ -19,17 +79,20 @@ struct Clazz {
     bool done;
 
     Clazz() : done(false) {};
-    void addMember(const std::string &type,
+
+    void addMember(const std::string &object_name,
                    const std::string &classname,
-                   const std::string &object_name,
-                   int access = PUBLIC_ACCESS,
-                   const std::string &template_arg = "") {
+                   const std::string &template_params,
+                   REFERENCE_TYPE::var reference_type = REFERENCE_TYPE::DEFAULT,
+                   ACCESS::var access = ACCESS::PUBLIC,
+                   const std::string &type = "class") {
         members[object_name] = {
-                {"template_arg", template_arg},
-                {"type",         type},
-                {"classname",    classname},
-                {"name",         object_name},
-                {"access",       std::to_string(access)}
+                {"template_params", template_params},
+                {"type",            type},
+                {"classname",       classname},
+                {"name",            object_name},
+                {"reference_type",  std::to_string(reference_type.v)},
+                {"access",          std::to_string(access.v)}
         };
     }
 };

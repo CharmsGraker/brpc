@@ -1,46 +1,9 @@
 #ifndef STUB_GENERATOR_PARSER_H
 #define STUB_GENERATOR_PARSER_H
 
-#include<cstdio>
-#include <unistd.h>
-#include "proxy_generator.h"
+#include "code_generator.h"
+#include "utils.h"
 
-std::string getcwd() {
-    char *buffer = NULL;
-    // 区分此函数是在Windows环境调用还是Linux环境调用
-#if defined (_WIN64) || defined (WIN32) || defined (_WIN32)
-    // 获取项目的工作路径
-    buffer = _getcwd(NULL, 0);
-#else
-    // 获取项目的工作路径
-    buffer = getcwd(NULL, 0);
-#endif
-    if (buffer) {
-        std::string path = buffer;
-        free(buffer);
-        return path;
-    }
-    return "";
-}
-
-std::string readFile(std::string path) {
-    std::ifstream f;
-    try {
-        std::cout << "read file from: " << path << std::endl;
-        f.open(path);
-        std::string line;
-        std::string content;
-        while (getline(f, line, '\n')) {
-            content += line;
-            content += '\n';
-        }
-        f.close();
-        return content;
-    } catch (std::exception &e) {
-        std::cout << e.what();
-    }
-    return "";
-}
 
 class ClassParser {
 protected:
@@ -147,18 +110,12 @@ public:
     }
 
 private:
-    std::string::const_iterator
+    void
     deal_signature(std::map<std::string, std::string> &mp,
                    std::string::const_iterator &beg,
                    const std::string::const_iterator &end) {
-        auto next = end;
-        for (auto iter = beg; iter != end; ++iter) {
-            if (*iter == '{' || *iter == ';') {
-                next = iter;
-                break;
-            }
-        }
-        auto &&arr = split(std::string(beg, next), ':');
+
+        auto &&arr = split(std::string(beg, end), ':');
         if (arr.size() == 2)
             mp["extend_constructor"] = arr[1];
         std::string s = arr[0];
@@ -181,7 +138,6 @@ private:
         }
         mp["params"] = sm[3].str();
         mp["identifier"] = mp["name"] + "^" + mp["params"];
-        return next;
     }
 
     std::string::const_iterator
@@ -189,8 +145,12 @@ private:
                        const std::string::const_iterator &beg,
                        const std::string::const_iterator &end) {
         int p;
-        if ((p = m_body.find('{', beg - m_body.cbegin())) == m_body.npos)
-            return beg + 1;
+        auto sem_pos = m_body.find(';', beg - m_body.cbegin());
+        std::cout << std::string(sem_pos + m_body.cbegin(), end);
+        // 需要处理未实现的函数，否则会找到末尾去了
+        if ((p = m_body.find('{', beg - m_body.cbegin())) == m_body.npos
+            || p + m_body.cbegin() >= end)
+            return end;
         auto body_begin = p + m_body.cbegin() + 1;
         auto body_end = end;
         auto cur = body_begin;
@@ -210,35 +170,67 @@ private:
         return cur;
     }
 
+    void get_scope_declare(std::string::const_iterator &beg,
+                           std::string::const_iterator &end) {
+        std::regex re1(".*?(public|private|protected):.*");
+        auto re2 = re1;
+        std::smatch sm1, sm2;
+        std::regex_search(beg, end, sm1, re1);
+        if (!sm1.empty())
+            return sm1[1].second;
+        return end;
+    }
+
     bool collectMethodOf(std::string::const_iterator &beg,
                          std::string::const_iterator &end) {
         if (beg == end)
             return false;
-        std::regex re1(".*?(public|private|protected):.*?");
-        std::smatch sm1;
-        std::regex_search(beg, end, sm1, re1);
-        std::string::const_iterator next = end;
-        if (!sm1.empty())
-            next = sm1[0].second;
+        auto scope_declare = get_scope_declare(beg, end);
+        assert(!scope_declare.empty());
 
         // class的默认访问权限是private
-        if ((beg == m_body.cbegin() && clazz.type == "class") || sm1[0].str() == "private") {
-            beg = next;
+        if (scope_declare["scope"] == "private") {
+            beg = scope_declare["end"];
             return true;
         }
-
+        auto next = scope_declare["end"];
         std::smatch sm;
-        std::regex re(
-                "\\b(template<(.*?)>)?\\s*([\\w]*?)?\\s*(.*?)\\((.*?)\\):?");
+        std::regex re("\\b(template<(.*?)>)?\\s*([\\w]*?)?\\s*(.*?)\\((.*?)\\):?");
         while (beg < next && std::regex_search(beg, next, sm, re)) {
             std::map<std::string, std::string> mp;
             auto &&template_arg = sm[2].str();
             if (!template_arg.empty())
                 mp["template_arg"] = template_arg;
-            mp["access"] = std::to_string(PUBLIC_ACCESS);
+            mp["access"] = std::to_string(ACCESS::PUBLIC.v); //TODO allow construct by string
             beg = sm[3].first;
-            beg = deal_signature(mp, beg, next);
-            beg = deal_function_body(mp, beg, next);
+            for (auto iter = beg; iter != next; ++iter) {
+                if (std::isalpha(*iter)) {
+                    beg = iter;
+                    break;
+                }
+            }
+            bool flag = true;
+            std::string::const_iterator body_beg = beg, iter;
+            for (iter = beg; iter != next; ++iter) {
+                if (*iter == '{') {
+                    body_beg = iter;
+                    break;
+                } else if (*iter == ';') {
+                    while (iter != next && (*iter == ';' || *iter == ' ' || *iter == '\n'))
+                        ++iter;
+                    beg = iter;
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (!flag) {
+                beg = iter;
+                continue;
+            }
+
+            deal_signature(mp, beg, body_beg);
+            beg = deal_function_body(mp, body_beg, next);
 #ifdef G_DEBUG
             printf("template_arg:%-15s\n", template_arg.c_str());
             std::cout << std::setw(15);
@@ -260,38 +252,63 @@ private:
     };
 };
 
-class ClassWrapper : public ClassParser {
-    std::string m_wrapper_name;
+class ClassProxy : public ClassParser {
+    std::string m_proxy_classname;
 public:
-    friend ProxyGenerator;
+    friend CodeGenerator;
 
     std::string build_invoke(std::string &params) {
         return "";
     }
 
     std::string remove_template_declare(const std::string &template_arg) {
-        auto i = template_arg.find('<');
         int len = template_arg.length();
+        size_t t_i = template_arg.find('<'), t_j = len;
+        assert(t_i != template_arg.npos);
+
         std::string ret;
-
-        while (i < len) {
-            if(template_arg[i] == '>')
+        int balance = 0;
+        for (auto i = t_i; i < len; ++i) {
+            if (template_arg[i] == '<')
+                ++balance;
+            if (template_arg[i] == '>')
+                --balance;
+            if (balance == 0 && i != t_i) {
+                t_j = i;
                 break;
+            }
+        }
+        auto tp = template_arg.substr(t_i + 1, t_j - t_i - 1);
+        auto t_params = split(tp, ',');
+        size_t t_l = t_params.size();
+        for (int i = 0; i < t_l; ++i) {
+            auto v = split(t_params[i], ' ');
+            assert(v.size() == 2);
 
+            // class, int string ... or other trivial type
+            auto key = v[0];
+            auto value = v[1];
+            std::cout << key << " : " << value << std::endl;
+            ret += value;
+            if (i != t_l - 1)
+                ret += ',';
         }
         return ret;
     }
 
-    ClassWrapper(std::string wrapper_name, const std::string &classname,
-                 const std::string &classpath) : m_wrapper_name(wrapper_name), ClassParser(classname, classpath) {
+    ClassProxy(std::string proxy_name, const std::string &classname,
+               const std::string &classpath) : m_proxy_classname(proxy_name), ClassParser(classname, classpath) {
         char buffer[1024];
         std::set<std::string> visited;
-        std::string template_arg;
-        if (!clazz.template_arg.empty()) {
-            template_arg = clazz.template_arg;
-        }
-        clazz.addMember(clazz.type, remove_template_declare(template_arg) + clazz.classname + " *", "impl",
-                        PRIVATE_ACCESS);
+        std::string template_params{};
+        if (!clazz.template_arg.empty())
+            template_params = remove_template_declare(clazz.template_arg);
+        clazz.addMember("impl",
+                        clazz.classname,
+                        template_params,
+                        REFERENCE_TYPE::POINTER,
+                        ACCESS::PRIVATE,
+                        clazz.type);
 
         for (auto &[identifier, m_mp]: clazz.methods) {
             if (visited.count(identifier))
@@ -306,29 +323,34 @@ public:
 
             if (name == clazz.classname) {
                 // constructor
-                auto &&newId = wrapper_name + "^" + params;
+                auto &&newId = proxy_name + "^" + params;
                 clazz.methods[newId] = clazz.methods[identifier];
                 clazz.methods.erase(identifier);
                 auto &e = clazz.methods[newId];
                 e[identifier] = identifier;
                 e["return_type"].clear();
-                e["name"] = wrapper_name;
-                e["body"] = "impl = new " + name + "(" + invoke_str + ");";
+                e["name"] = proxy_name;
+                if (!template_params.empty()) {
+                    e["body"] = format("impl = new %s<%s>(%s);",
+                                       name.c_str(), template_params.c_str(), invoke_str.c_str());
+                } else
+                    e["body"] = format("impl = new %s(%s);",
+                                       name.c_str(), invoke_str.c_str());
                 visited.insert(newId);
             } else {
-                n = sprintf(buffer + n, "return impl->%s(%s);",
-                            name.c_str(), invoke_str.c_str());
+                n += sprintf(buffer + n, "return impl->%s(%s);",
+                             name.c_str(), invoke_str.c_str());
                 m_mp["body"] = std::string(buffer);
                 visited.insert(identifier);
             }
         }
 
-        clazz.classname = wrapper_name;
+        clazz.classname = proxy_name;
     }
 };
 
-ProxyGenerator::ProxyGenerator(ClassWrapper *w) :
-        ProxyGenerator(w->clazz) {
+CodeGenerator::CodeGenerator(ClassProxy *w) :
+        CodeGenerator(w->clazz) {
     for (auto &[name, mp]: w->clazz.members) {
         addMember(mp);
     }
