@@ -79,6 +79,13 @@ build CMakeFiles/generator.dir/main.cpp.o: CXX_COMPILER__generator_Debug /home/n
   OBJECT_DIR = CMakeFiles/generator.dir
   OBJECT_FILE_DIR = CMakeFiles/generator.dir
 
+build CMakeFiles/generator.dir/clazz.cpp.o: CXX_COMPILER__generator_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/clazz.cpp || cmake_object_order_depends_target_generator
+  DEP_FILE = CMakeFiles/generator.dir/clazz.cpp.o.d
+  FLAGS = -g -std=gnu++1z
+  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/.
+  OBJECT_DIR = CMakeFiles/generator.dir
+  OBJECT_FILE_DIR = CMakeFiles/generator.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target generator
@@ -87,7 +94,7 @@ build CMakeFiles/generator.dir/main.cpp.o: CXX_COMPILER__generator_Debug /home/n
 #############################################
 # Link the executable generator
 
-build generator: CXX_EXECUTABLE_LINKER__generator_Debug CMakeFiles/generator.dir/main.cpp.o
+build generator: CXX_EXECUTABLE_LINKER__generator_Debug CMakeFiles/generator.dir/main.cpp.o CMakeFiles/generator.dir/clazz.cpp.o
   FLAGS = -g
   OBJECT_DIR = CMakeFiles/generator.dir
   POST_BUILD = :

@@ -15,6 +15,7 @@
 #include <memory>
 #include <zmq.hpp>
 #include "Serializer.hpp"
+#include "runtime_class.h"
 
 
 class Serializer;
@@ -200,8 +201,15 @@ private:
         constexpr auto N = std::tuple_size<typename std::decay<args_type>::type>::value;
         args_type args = ds.get_tuple<args_type>(std::make_index_sequence<N>{});
 
-        auto ff = [=](Params... ps) -> R {
-            return (s->*func)(ps...);
+        auto ff = [&](Params... ps) -> R {
+            if(!s) {
+                printf("create new object\n");
+                std::cout << getClassName<>(s) << std::endl;
+                s = new S(); // must implement trivial constructor
+            }
+            auto ret = (s->*func)(ps...);
+            delete s;
+            return ret;
         };
         typename type_xx<R>::type r = call_helper<R>(ff, args);
 
@@ -209,6 +217,7 @@ private:
         val.set_code(RPC_ERR_SUCCESS);
         val.set_val(r);
         (*pr) << val;
+
     }
 
     // functional

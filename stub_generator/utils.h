@@ -8,7 +8,7 @@
 
 std::string getcwd();
 
-std::string get_pdir(std::string &path);
+std::string get_pdir(const std::string &path);
 
 void mkdir(std::string &dir, int mode = 0777);
 
@@ -65,8 +65,8 @@ void remove_file(std::string &path) {
     remove(path.c_str());
 }
 
-void create_file(std::string &path) {
-    if (exist_file((path)))
+void create_file(const std::string &path, bool exist_ok = false) {
+    if (!exist_ok && exist_file((path)))
         return;
     auto pdir = get_pdir(path);
     mkdirs(pdir);
@@ -96,7 +96,7 @@ std::string join(const std::string &s1, const std::string &s2) {
     return s1 + "/" + s2;
 }
 
-std::string get_pdir(std::string &path) {
+std::string get_pdir(const std::string &path) {
     auto j = path.rfind('/');
     if (j == path.npos) {
         // do not exist parent dir or fatal error

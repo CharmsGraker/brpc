@@ -3,14 +3,28 @@
 
 #include "code_generator.h"
 #include "utils.h"
+#include "../lib/string_utils/string_utils.h"
 
+
+static std::regex scope_re(".*?(public|private|protected):.*");
 
 class ClassParser {
 protected:
     std::string m_body;
     std::string m_scope;
+public:
+
     Clazz clazz;
 public:
+    void deal_default_scope(std::string &body) {
+        std::string scope_modifier = clazz.type == "struct" ? "public" : "private";
+        std::smatch sm;
+        std::regex_search(body.cbegin(), body.cend(), sm, scope_re);
+        if (sm.empty() || sm[1].first != body.cbegin()) {
+            body = scope_modifier + body;
+        }
+    }
+
     ClassParser(const std::string &classname,
                 const std::string &classpath) {
         if (classname.empty() || classpath.empty())
@@ -54,9 +68,12 @@ public:
                             --balance;
                         ++iter;
                         if (balance == 0) {
-                            // not include brace
+                            // not include brace, but \n
                             m_body = m_scope.substr(l + 1, iter - beg - l - 2);
 //                            m_scope = m_scope.substr(beg - m_scope.cbegin(), iter - beg);
+                            m_body = trim(m_body);
+                            deal_default_scope(m_body);
+
                             beg = iter;
                             break;
                         }
@@ -88,26 +105,11 @@ public:
     void collectAllMethod() {
         // 先处理省略了访问修饰符的，比如class默认为private,这个只会出现在第一段
         std::string::const_iterator beg = m_body.cbegin(), end = m_body.cend();
-        while (collectMethodOf(beg, end));
+        while (collectMethodInScope(beg, end));
         if (clazz.n_method == 0)
             printf("find empty\n");
     };
 
-    std::vector<std::string> split(const std::string &s, char sep) {
-        std::vector<std::string> arr;
-        int slen = s.length();
-        int j = 0;
-        for (int i = 0; i < slen; ++i) {
-            while (i < slen && s[i] == sep)
-                ++i;
-            j = i;
-            while (i < slen && s[i] != sep)
-                ++i;
-            if (i > j)
-                arr.push_back(s.substr(j, i - j));
-        }
-        return arr;
-    }
 
 private:
     void
@@ -146,7 +148,7 @@ private:
                        const std::string::const_iterator &end) {
         int p;
         auto sem_pos = m_body.find(';', beg - m_body.cbegin());
-        std::cout << std::string(sem_pos + m_body.cbegin(), end);
+//        std::cout << std::string(sem_pos + m_body.cbegin(), end);
         // 需要处理未实现的函数，否则会找到末尾去了
         if ((p = m_body.find('{', beg - m_body.cbegin())) == m_body.npos
             || p + m_body.cbegin() >= end)
@@ -170,77 +172,150 @@ private:
         return cur;
     }
 
-    void get_scope_declare(std::string::const_iterator &beg,
-                           std::string::const_iterator &end) {
-        std::regex re1(".*?(public|private|protected):.*");
-        auto re2 = re1;
-        std::smatch sm1, sm2;
-        std::regex_search(beg, end, sm1, re1);
-        if (!sm1.empty())
-            return sm1[1].second;
-        return end;
+    int parse_annotation(const std::string &anno) {
+        std::cout << anno << std::endl;
+        std::regex re("@RPC_(\\w+)\\b");
+        std::smatch sm;
+        std::string::const_iterator beg = anno.cbegin(), end = anno.cend();
+        int flag = 0;
+        while (std::regex_search(beg, end, sm, re)) {
+            if (!sm.empty()) {
+                if (sm[1].str() == "INJECT") {
+                    flag |= 1;
+                } else if (sm[1].str() == "NOT_INJECT") {
+
+                } else {
+                    // skip this method
+                }
+                beg = sm[1].second;
+            }
+        };
+        return flag;
     }
 
-    bool collectMethodOf(std::string::const_iterator &beg,
-                         std::string::const_iterator &end) {
+    bool default_behavior = true;
+
+    bool search_rpc_annotation(std::string::const_iterator &begin,
+                               std::string::const_iterator &end) {
+        std::cout << "\n-----annotation-----\n";
+        std::regex re("\\s*(//\\s*(.*?)\\s*?\r*\n|/\\*\\s*(.*?)\\s*\\*/)");
+        std::smatch sm;
+        int flag = -1;
+        while (std::regex_search(begin, end, sm, re)) {
+            if (!sm.empty()) {
+                std::string anno;
+                if (!sm[2].str().empty()) {
+                    anno = sm[2].str();
+                    begin = sm[2].second;
+                } else if (!sm[3].str().empty()) {
+                    anno = sm[3].str();
+                    begin = sm[3].second;
+                } else {
+                    begin = end;
+                }
+                if (!anno.empty())
+                    flag = std::max(0, flag) | parse_annotation(anno);
+            }
+        }
+
+        if (flag < 0)
+            return default_behavior;
+        std::cout << flag;
+        return flag;
+    }
+
+    bool collectMethodInScope(std::string::const_iterator &beg,
+                              std::string::const_iterator &end) {
         if (beg == end)
             return false;
-        auto scope_declare = get_scope_declare(beg, end);
-        assert(!scope_declare.empty());
+        std::string::const_iterator next,
+                last,
+                tbegin; // template begin, equal to begin if not exist template arguments
 
-        // class的默认访问权限是private
-        if (scope_declare["scope"] == "private") {
-            beg = scope_declare["end"];
+        std::smatch sm1, sm2;
+
+        next = end;
+
+        // locate current scope starter
+        std::regex_search(beg, end, sm1, scope_re);
+        std::string scope_modifier;
+        if (!sm1.empty()) {
+            beg = sm1[1].second + 1; // to skip the ':'
+            scope_modifier = sm1[1].str();
+            // locate next scope starter if exists
+            std::regex_search(sm1[1].second + 1, end, sm2, scope_re);
+            if (!sm2.empty()) {
+                next = sm2[1].first;
+                assert(beg != next);
+            }
+        }
+
+        if (scope_modifier == "private") {
+            beg = next;
             return true;
         }
-        auto next = scope_declare["end"];
+
+        // TODO: accept add all simple methods in a header
+        // collectMethodInSegment();
+        // should not match annotation in regex pattern
         std::smatch sm;
-        std::regex re("\\b(template<(.*?)>)?\\s*([\\w]*?)?\\s*(.*?)\\((.*?)\\):?");
-        while (beg < next && std::regex_search(beg, next, sm, re)) {
+        std::regex re("\\b(template<(.*?)>)?\\s*([\\w[^\\s]]*?)?\\s*(.*?)\\((.*?)\\):?");
+        for (last = beg;
+             beg < next && std::regex_search(beg, next, sm, re);
+             last = beg) {
             std::map<std::string, std::string> mp;
             auto &&template_arg = sm[2].str();
-            if (!template_arg.empty())
-                mp["template_arg"] = template_arg;
-            mp["access"] = std::to_string(ACCESS::PUBLIC.v); //TODO allow construct by string
+
+            //TODO: allow construct by string
+            mp["access"] = std::to_string(ACCESS::PUBLIC.v);
             beg = sm[3].first;
-            for (auto iter = beg; iter != next; ++iter) {
-                if (std::isalpha(*iter)) {
-                    beg = iter;
-                    break;
-                }
-            }
-            bool flag = true;
+            if (!template_arg.empty()) {
+                mp["template_arg"] = template_arg;
+                tbegin = sm[1].first;
+            } else
+                tbegin = beg;
+            std::string::const_iterator body_end = next;
+
+            bool only_declaration = false;
             std::string::const_iterator body_beg = beg, iter;
             for (iter = beg; iter != next; ++iter) {
                 if (*iter == '{') {
                     body_beg = iter;
                     break;
                 } else if (*iter == ';') {
+                    body_beg = iter;
                     while (iter != next && (*iter == ';' || *iter == ' ' || *iter == '\n'))
                         ++iter;
-                    beg = iter;
-                    flag = false;
+                    body_end = iter;
+                    only_declaration = true;
                     break;
                 }
             }
 
-            if (!flag) {
-                beg = iter;
-                continue;
-            }
-
+            std::cout << "signature: " << std::string(beg, body_beg) << "\n";
             deal_signature(mp, beg, body_beg);
-            beg = deal_function_body(mp, body_beg, next);
+
+            // filter those methods do not want to be injected
+            bool injectFlag = default_behavior;
+            if (last < tbegin) {
+                injectFlag = search_rpc_annotation(last, tbegin);
+            }
+            if (only_declaration) {
+                beg = body_end;
+            } else
+                beg = deal_function_body(mp, body_beg, body_end);
+            if(! injectFlag)
+                continue;
 #ifdef G_DEBUG
-            printf("template_arg:%-15s\n", template_arg.c_str());
-            std::cout << std::setw(15);
-            std::cout << "modifier=" << mp["modifier"] << std::endl;
-            std::cout << "return_type=" << mp["return_type"] << std::endl;
-            std::cout << "identifier=" << mp["identifier"] << std::endl;
-            std::cout << "name=" << mp["name"] << std::endl;
-            std::cout << "params=" << mp["params"] << std::endl;
-            std::cout << "body=" << mp["body"] << std::endl;
-            printf("-----------------------------\n");
+                printf("template_arg:%-15s\n", template_arg.c_str());
+                std::cout << std::setw(15);
+                std::cout << "modifier=" << mp["modifier"] << std::endl;
+                std::cout << "return_type=" << mp["return_type"] << std::endl;
+                std::cout << "identifier=" << mp["identifier"] << std::endl;
+                std::cout << "name=" << mp["name"] << std::endl;
+                std::cout << "params=" << mp["params"] << std::endl;
+                std::cout << "body=" << mp["body"] << std::endl;
+                printf("-----------------------------\n");
 #endif
             assert(mp.count("name"));
             clazz.methods[mp["identifier"]] = mp;
@@ -257,106 +332,70 @@ class ClassProxy : public ClassParser {
 public:
     friend CodeGenerator;
 
-    std::string build_invoke(std::string &params) {
-        return "";
-    }
-
-    std::string remove_template_declare(const std::string &template_arg) {
-        int len = template_arg.length();
-        size_t t_i = template_arg.find('<'), t_j = len;
-        assert(t_i != template_arg.npos);
-
-        std::string ret;
-        int balance = 0;
-        for (auto i = t_i; i < len; ++i) {
-            if (template_arg[i] == '<')
-                ++balance;
-            if (template_arg[i] == '>')
-                --balance;
-            if (balance == 0 && i != t_i) {
-                t_j = i;
-                break;
-            }
-        }
-        auto tp = template_arg.substr(t_i + 1, t_j - t_i - 1);
-        auto t_params = split(tp, ',');
-        size_t t_l = t_params.size();
-        for (int i = 0; i < t_l; ++i) {
-            auto v = split(t_params[i], ' ');
-            assert(v.size() == 2);
-
-            // class, int string ... or other trivial type
-            auto key = v[0];
-            auto value = v[1];
-            std::cout << key << " : " << value << std::endl;
-            ret += value;
-            if (i != t_l - 1)
-                ret += ',';
-        }
-        return ret;
-    }
-
     ClassProxy(std::string proxy_name, const std::string &classname,
                const std::string &classpath) : m_proxy_classname(proxy_name), ClassParser(classname, classpath) {
         char buffer[1024];
         std::set<std::string> visited;
-        std::string template_params{};
-        if (!clazz.template_arg.empty())
-            template_params = remove_template_declare(clazz.template_arg);
         clazz.addMember("impl",
                         clazz.classname,
-                        template_params,
+                        clazz.templateParams(),
                         REFERENCE_TYPE::POINTER,
                         ACCESS::PRIVATE,
                         clazz.type);
 
-        for (auto &[identifier, m_mp]: clazz.methods) {
+        for (auto &[identifier, method]: clazz.methods) {
+            assert(!identifier.empty());
             if (visited.count(identifier))
                 continue;
-            auto &body = m_mp["body"];
+            auto &&body = method.getBody();
             memset(buffer, 0, sizeof buffer);
             size_t n = 0;
-            auto &&invoke_str = build_invoke(m_mp["params"]);
+            auto &&pvs = method.getParamsValue();
+            std::string pv_string;
+            int len = pvs.size();
+            for (int i = 0; i < len; ++i) {
+                pv_string += pvs[i];
+                if (i != len - 1)
+                    pv_string += ',';
+            }
             auto &&r = split(identifier, '^');
             auto name = r[0];
             auto params = r.size() == 1 ? "" : r[1];
 
             if (name == clazz.classname) {
                 // constructor
-                auto &&newId = proxy_name + "^" + params;
+                auto &&newId = m_proxy_classname + "^" + params;
                 clazz.methods[newId] = clazz.methods[identifier];
                 clazz.methods.erase(identifier);
                 auto &e = clazz.methods[newId];
                 e[identifier] = identifier;
                 e["return_type"].clear();
-                e["name"] = proxy_name;
-                if (!template_params.empty()) {
-                    e["body"] = format("impl = new %s<%s>(%s);",
-                                       name.c_str(), template_params.c_str(), invoke_str.c_str());
-                } else
-                    e["body"] = format("impl = new %s(%s);",
-                                       name.c_str(), invoke_str.c_str());
+                e["name"] = m_proxy_classname;
+                e["body"] = format("impl = new %s(%s);",
+                                   clazz.nameWithTemplateParams().c_str(), pv_string.c_str());
                 visited.insert(newId);
             } else {
-                n += sprintf(buffer + n, "return impl->%s(%s);",
-                             name.c_str(), invoke_str.c_str());
-                m_mp["body"] = std::string(buffer);
+                if (method.count("modifier") && method["modifier"] == "static") {
+                    n += sprintf(buffer + n, "return %s::%s(%s);",
+                                 clazz.nameWithTemplateParams().c_str(), name.c_str(), pv_string.c_str());
+                } else {
+                    n += sprintf(buffer + n, "return impl->%s(%s);",
+                                 name.c_str(), pv_string.c_str());
+                }
+                method["body"] = std::string(buffer);
                 visited.insert(identifier);
             }
         }
 
         clazz.classname = proxy_name;
+        clazz.addDeconstruct("delete impl;");
     }
 };
 
+
 CodeGenerator::CodeGenerator(ClassProxy *w) :
         CodeGenerator(w->clazz) {
-    for (auto &[name, mp]: w->clazz.members) {
-        addMember(mp);
-    }
-    for (auto &[identifier, mp]: w->clazz.methods) {
-        addMethod(mp);
-    }
 }
+
 
 #endif //STUB_GENERATOR_PARSER_H

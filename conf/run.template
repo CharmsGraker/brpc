@@ -1,0 +1,11 @@
+int main() {
+    buttonrpc server;
+    server.as_server(5555);
+
+    // @bind_area
+
+    std::cout << "run rpc server on: " << 5555 << std::endl;
+    server.run();
+
+    return 0;
+}

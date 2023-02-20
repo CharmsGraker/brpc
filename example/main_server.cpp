@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 #include "buttonrpc.hpp"
-
+#include "constant.h"
 
 #define buttont_assert(exp) { \
     if (!(exp)) {\
@@ -10,7 +10,6 @@
         system("pause"); \
     }\
 }\
-
 
 // 测试例子
 void foo_1() {
@@ -34,15 +33,7 @@ int foo_4(int arg1, std::string arg2, int arg3, float arg4) {
     return arg1 * arg3;
 }
 
-class ClassMem {
-public:
-    int bar(int arg1, std::string arg2, int arg3) {
-        buttont_assert(arg1 == 10);
-        buttont_assert(arg2 == "buttonrpc");
-        buttont_assert(arg3 == 100);
-        return arg1 * arg3;
-    }
-};
+
 
 struct PersonInfo {
     int age;
@@ -74,6 +65,8 @@ PersonInfo foo_5(PersonInfo d, int weight) {
     return ret;
 }
 
+ClassMem *s= nullptr;
+
 int main() {
     buttonrpc server;
     server.as_server(5555);
@@ -84,8 +77,8 @@ int main() {
     server.bind("foo_4", foo_4);
     server.bind("foo_5", foo_5);
 
-    ClassMem s;
-    server.bind("foo_6", &ClassMem::bar, &s);
+
+    server.bind("foo_6", &ClassMem::bar, (ClassMem *)nullptr);
 
     std::cout << "run rpc server on: " << 5555 << std::endl;
     server.run();

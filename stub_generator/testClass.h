@@ -14,13 +14,13 @@ class testClass : public base {
 public:
     testClass() {}
 
+    // @RPC_NOT_INJECT
     static int m1() {
     }
-
     void operator<<(int a) {
 
     }
-
+    // @RPC_INJECT
     void operator()();
 
 
