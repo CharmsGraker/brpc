@@ -10,9 +10,8 @@
 #include <map>
 #include <vector>
 #include <fstream>
-#include "clazz.h"
 #include "utils.h"
-#include "method.h"
+#include "code_analyser/parse_object/method.h"
 
 class ClassProxy;
 
@@ -130,7 +129,7 @@ struct CodeGenerator {
     };
 
     std::string toString() {
-        std::string header = "#include\"" + clazz.classpath + "\"\n\n";
+        std::string header = "#include\"" + clazz.getPath() + "\"\n\n";
         std::string stream, fieldStr, template_arg;
         if (!clazz.template_arg.empty()) {
             template_arg = clazz.template_arg;
@@ -144,7 +143,7 @@ struct CodeGenerator {
 
     void setOutputDir(const std::string &dir = "") {
         if (dir.empty()) {
-            auto cpth = clazz.classpath;
+            auto cpth = clazz.getPath();
             auto pdir = get_pdir(cpth);
             m_out_path = join(pdir, "auto-generated", "rpc_ns", clazz.classname + ".h");
         } else

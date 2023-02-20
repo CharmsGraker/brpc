@@ -2,7 +2,6 @@
 
 #define G_CMAKE
 
-#include "classparser.h"
 #include "server_startup/ServerStartup.h"
 
 ServerStartup *rpc_server_startup = nullptr;
@@ -14,11 +13,12 @@ void convertRPCClass(const std::string &classname, const std::string &class_path
     ClassProxy *proxy = new ClassProxy(classname + "_proxy", classname, class_path);
     auto dom = new CodeGenerator(proxy);
     dom->setOutputDir(project_root);
-    rpc_server_startup->addClass(proxy);
     dom->render();
+    delete dom;
+
+    rpc_server_startup->addMethodsFromParser((ClassParser *) proxy);
     rpc_server_startup->buildAll();
 
-    delete dom;
     delete proxy;
 }
 

@@ -5,7 +5,8 @@
 #ifndef STUB_GENERATOR_SERVERSTARTUP_H
 #define STUB_GENERATOR_SERVERSTARTUP_H
 
-#include "classparser.h"
+#include "classproxy.h"
+#include "code_analyser/headerparser.h"
 
 struct Statement {
     Statement() = default;
@@ -59,25 +60,10 @@ public:
 
     ServerStartup(const std::string &root) : server_root(root) {};
 
-    Statement build_method_startup(const Method &m) {
-        return {};
-    }
 
 public:
-    void addClass(ClassProxy *proxy) {
-        auto &clazz = proxy->clazz;
-        for (auto &[name, method]: clazz.methods) {
-            auto rpc_m_name = format("%s::%s",
-                                     clazz.classname.c_str(), method["name"].c_str());
-            auto stat = format("server.bind(\"%s\", &%s::%s, (%s)%s);",
-                               rpc_m_name.c_str(),
-                               clazz.classname.c_str(),
-                               method["name"].c_str(),
-                               clazz.classname.c_str(),
-                               "nullptr");
-//            std::cout << stat << std::endl;
-            run_area.insert(stat);
-        }
+    void addClass(ClassParser *parser) {
+        return addMethodsFromParser(parser);
     };
 
     void buildAll() {
@@ -94,6 +80,67 @@ public:
         create_file(statup_file_path);
         write(statup_file_path, f);
     }
+
+    void addRPCMethod(std::string &rpcName, Method &method, const std::string &classname = "") {
+        std::string stat;
+        if (classname.empty()) {
+            stat = format("server.bind(\"%s\", %s);",
+                          rpcName.c_str(),
+                          method["name"].c_str());
+        } else {
+            stat = format("server.bind(\"%s\", &%s::%s, (%s)%s);",
+                          rpcName.c_str(),
+                          classname.c_str(),
+                          method["name"].c_str(),
+                          classname.c_str(),
+                          "nullptr");
+        }
+
+//            std::cout << stat << std::endl;
+        run_area.insert(stat);
+    }
+
+    void addMethodsFromParser(ClassParser *parser);
+
+    void addMethodsFromParser(HeaderParser *parser);
+
+    std::string buildRPCName(ClassParser *parser, Method &method);
+
+    std::string buildRPCName(HeaderParser *parser, Method &method);
+
 };
+
+
+void ServerStartup::addMethodsFromParser(ClassParser *parser) {
+    const std::map<std::string, Method> &methods = parser->getMethods();
+    auto &clazz = parser->clazz;
+
+    for (auto &[id, m]: methods) {
+        auto m_rpcname = buildRPCName(parser, const_cast<Method &> (m));
+        addRPCMethod(m_rpcname, const_cast<Method &> (m));
+    }
+}
+
+void ServerStartup::addMethodsFromParser(HeaderParser *parser) {
+    const std::map<std::string, Method> &methods = parser->getMethods();
+    for (auto &[id, m]: methods) {
+        auto m_rpcname = buildRPCName(parser, const_cast<Method &> (m));
+        addRPCMethod(m_rpcname, const_cast<Method &>(m));
+    }
+}
+
+std::string getRelativeFromRoot(const std::string & root, const std::string & file_path) {
+    return {};
+}
+
+std::string ServerStartup::buildRPCName(HeaderParser *parser, Method &method) {
+    return format("%s::%s", getRelativeFromRoot(server_root, parser->getPath()).c_str(), method["name"].c_str());
+}
+
+std::string ServerStartup::buildRPCName(ClassParser *parser, Method &method) {
+    return format("%s::%s", parser->clazz.classname.c_str(), method["name"].c_str());
+}
+
+
 
 #endif //STUB_GENERATOR_SERVERSTARTUP_H
