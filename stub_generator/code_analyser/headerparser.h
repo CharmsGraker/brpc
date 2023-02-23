@@ -13,53 +13,52 @@
 #include "parse_object/header.h"
 #include "code_analyser/common.h"
 
-class Clazz;
+class ClassParser;
+
 // this class will register all method in one header
 class HeaderParser {
     std::string m_body;
-    Header header;
+    Header *m_header = nullptr;
+    bool m_exclude_class;
 public:
-    HeaderParser(const std::string &header_path) {
-        m_body = readFile(header_path);
+    HeaderParser(Header &header, bool excludeClass = true) :
+            m_header(&header), m_exclude_class(excludeClass) {
+        m_body = readFile(header.getPath());
         if (m_body.empty()) {
             std::cout << "empty content\n";
             return;
         }
     }
 
-    void searchClassIn(const std::string::const_iterator &cbegin,
-                       const std::string::const_iterator &cend,
-                       std::string::const_iterator &from,
-                       std::string::const_iterator &to,
-                       Clazz *clazzPtr = nullptr);
+    bool setExcludeClass(bool flag) {
+        bool old = m_exclude_class;
+        m_exclude_class = flag;
+        return old;
+    }
+
+    Header *getHeader() {
+        return m_header;
+    }
 
     void collectMethodsBetween(const std::string::const_iterator &cbegin,
                                const std::string::const_iterator &cend);
 
-
     void collectAllMethods() {
-        std::string::const_iterator cbegin = m_body.cbegin(), cend = m_body.cend();
-        std::string::const_iterator beg = cbegin, end = cend;
-        std::string::const_iterator class_begin, class_end;
-
-        while (beg < end) {
-            searchClassIn(beg, end, class_begin, class_end);
-            if (beg < class_begin)
-                collectMethodsBetween(beg, class_begin);
-            beg = class_end;
-        };
+        bool tmp = m_exclude_class;
+        m_exclude_class = true;
+        collectAll();
+        m_exclude_class = tmp;
     }
 
-    void printAllMethods();
+    void collectAll();
 
-    auto &getMethods() const {
-        return header.methods;
+    // those class with only declaration will be ignored
+
+    ~HeaderParser() {
+        // release ref
+        m_header = nullptr;
     }
 
-
-    auto &&getPath() {
-        return header.getPath();
-    }
 };
 
 #endif //STUB_GENERATOR_HEADERPARSER_H

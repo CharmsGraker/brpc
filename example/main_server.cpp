@@ -70,7 +70,6 @@ ClassMem *s= nullptr;
 int main() {
     buttonrpc server;
     server.as_server(5555);
-
     server.bind("foo_1", foo_1);
     server.bind("foo_2", foo_2);
     server.bind("foo_3", std::function<int(int)>(foo_3));

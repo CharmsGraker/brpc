@@ -19,6 +19,7 @@ void mkdir(std::string &dir, int mode = 0777);
 
 std::string getcwd();
 
+std::string buildAbsPath(std::string path);
 
 void mkdirs(std::string &dir);
 
@@ -29,6 +30,10 @@ void remove_file(std::string &path);
 void create_file(const std::string &path, bool exist_ok = false);
 
 int write(const std::string &path, const std::string &content);
+
+int append(std::fstream &f, const std::string &content);
+
+int append(const std::string &path, const std::string &content);
 
 template<typename ...Args>
 std::string join(const std::string &s1, const std::string &s2, Args... args) {
@@ -46,5 +51,9 @@ std::string get_pdir(const std::string &path);
 std::string readFile(std::string path);
 
 std::string format(const char *format, ...);
+
+std::string getExt(std::string);
+
+std::string getRelativeFromRoot(const std::string &root, const std::string &file_path);
 
 #endif //STUB_GENERATOR_UTILS_H

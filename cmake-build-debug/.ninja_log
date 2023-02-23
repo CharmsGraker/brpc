@@ -1,6 +1,16 @@
 # ninja log v5
+1	551	1677116153509412713	CMakeFiles/auto_client.dir/auto-generated/impl.cpp.o	200c366ba79a16e5
 837	931	1676883242416342512	client	4537263368841352
-1232	1330	1676883211184741969	buttonrpc	e83de5284a4e7d2e
-0	15	1676883263960068313	build.ninja	6ba1d53ea531aba6
+1029	1106	1677116067113752357	buttonrpc	5c6c51a971fad50f
+0	15	1677118413089705245	build.ninja	6ba1d53ea531aba6
+551	626	1677116153585412370	auto_client	99c8423e43eb0f13
 1	837	1676883242320343737	CMakeFiles/client.dir/example/main_client.cpp.o	cfbb7470ba356966
 1	1232	1676883211088743201	CMakeFiles/buttonrpc.dir/example/main_server.cpp.o	6dfafa41412c0b00
+1	123	1677114647936667087	CMakeFiles/rpcstub.dir/auto-generated/runtime_class.cpp.o	953d252a171d47e0
+0	548	1677116098693641025	CMakeFiles/auto_client.dir/example/auto_client.cpp.o	c47ca68297ceb41f
+0	1029	1677116067037752606	CMakeFiles/buttonrpc.dir/rpc_build/start_server.cpp.o	58a8c07e15de87ec
+1	620	1677113873544047603	CMakeFiles/buttonrpc.dir/auto-generated/impl.cpp.o	c6eeb3dff2f4b8f3
+0	120	1677115885182049976	CMakeFiles/buttonrpc.dir/auto-generated/runtime_class.cpp.o	9afd42d20fdcc19e
+1	1094	1677118473083747043	CMakeFiles/buttonrpc.dir/rpc_build/start_server.cpp.o	58a8c07e15de87ec
+1	127	1677118503762781515	CMakeFiles/buttonrpc.dir/auto-generated/runtime_class.cpp.o	9afd42d20fdcc19e
+127	205	1677118503838779150	buttonrpc	5c6c51a971fad50f

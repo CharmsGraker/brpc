@@ -1,0 +1,8 @@
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"
+#include"/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/stub_generator/../stub_generator/testClass.h"

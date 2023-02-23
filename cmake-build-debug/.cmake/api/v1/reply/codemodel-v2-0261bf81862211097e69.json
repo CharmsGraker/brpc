@@ -9,14 +9,15 @@
 					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
 					"minimumCMakeVersion" : 
 					{
-						"string" : "3.21"
+						"string" : "3.16"
 					},
 					"projectIndex" : 0,
 					"source" : ".",
 					"targetIndexes" : 
 					[
 						0,
-						1
+						1,
+						2
 					]
 				}
 			],
@@ -32,7 +33,8 @@
 					"targetIndexes" : 
 					[
 						0,
-						1
+						1,
+						2
 					]
 				}
 			],
@@ -40,15 +42,22 @@
 			[
 				{
 					"directoryIndex" : 0,
+					"id" : "auto_client::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-auto_client-Debug-6f8523b8d9e0c23f3cb0.json",
+					"name" : "auto_client",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
 					"id" : "buttonrpc::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-buttonrpc-Debug-8164cfff9f0ba85adbbc.json",
+					"jsonFile" : "target-buttonrpc-Debug-a83ef6304e00537c9f96.json",
 					"name" : "buttonrpc",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "client::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-client-Debug-fe934a2c5cbea2634702.json",
+					"jsonFile" : "target-client-Debug-312c70144cb28e3dcfe0.json",
 					"name" : "client",
 					"projectIndex" : 0
 				}

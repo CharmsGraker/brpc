@@ -1,0 +1,2 @@
+/usr/bin/ar qc librpcstub.a  CMakeFiles/rpcstub.dir/auto-generated/impl.cpp.o CMakeFiles/rpcstub.dir/auto-generated/runtime_class.cpp.o
+/usr/bin/ranlib librpcstub.a

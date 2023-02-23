@@ -4,9 +4,9 @@
 
 #ifndef STUB_GENERATOR_PARSE_OBJECT_H
 #define STUB_GENERATOR_PARSE_OBJECT_H
-#include "constant.h"
 
-class Method;
+#include "constant.h"
+#include "method.h"
 
 struct ParseObject {
     std::string path;
@@ -15,8 +15,13 @@ public:
     std::map<std::string, Method> methods;
     std::map<std::string, std::map<std::string, std::string>> members;
 
-    const std::string& getPath() const {
+    ParseObject(const std::string &p) : path(p) {};
+
+    const std::string &getPath() const {
         return path;
+    }
+    auto &getMethods() const {
+        return methods;
     }
 
     void addMember(const std::string &object_name,

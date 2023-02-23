@@ -28,7 +28,6 @@ std::string ACCESS::var::toString() {
     }
 }
 
-
 void cleanMethodName(std::string &name) {
     assert(!name.empty());
     if (name[0] == '~') {
@@ -48,5 +47,9 @@ Clazz::~Clazz() {
     if (deconstruct)
         delete deconstruct;
 
+}
+
+void Clazz::addConstruct(const std::string &params, const std::string &body) {
+    ParseObject::addMethod(classname, body, ACCESS::PUBLIC, params, "", "", "");
 }
 

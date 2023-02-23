@@ -1,9 +1,11 @@
 #include "headerparser.h"
-#include "parse_object/clazz.h"
+#include "code_analyser/classparser.h"
 #include "code_analyser/parse_object/method.h"
 
 void HeaderParser::collectMethodsBetween(const std::string::const_iterator &cbegin,
                                          const std::string::const_iterator &cend) {
+    assert(m_header);
+
     std::smatch sm;
     std::regex re("\\b(template<(.*?)>)?\\s*([\\w[^\\s]]*?)?\\s*(.*?)\\((.*?)\\):?");
     std::string::const_iterator beg = cbegin, end = cend;
@@ -66,70 +68,28 @@ void HeaderParser::collectMethodsBetween(const std::string::const_iterator &cbeg
                     printf("-----------------------------\n");
 #endif
         assert(mp.count("name"));
-        header.methods[mp["identifier"]] = mp;
-        ++header.n_method;
+        m_header->methods[mp["identifier"]] = mp;
+        ++m_header->n_method;
     }
-    assert(header.n_method == header.methods.size());
+    assert(m_header->n_method == m_header->methods.size());
 }
 
-void HeaderParser::printAllMethods() {
-    for (auto &[id, m]: header.methods) {
-        std::cout << m["name"] << std::endl;
-    }
-}
-
-void HeaderParser::searchClassIn(const std::string::const_iterator &cbegin,
-                                 const std::string::const_iterator &cend,
-                                 std::string::const_iterator &from,
-                                 std::string::const_iterator &to,
-                                 Clazz *clazzPtr) {
-    if (cbegin >= cend)
-        return;
-    std::regex re("\\b(template<(.*?)>)?\\s*(class\\b|\\bstruct\\b)\\s+?(.*?)(.*)");
+void HeaderParser::collectAll() {
+    assert(m_header);
+    std::string::const_iterator cbegin = m_body.cbegin(), cend = m_body.cend();
     std::string::const_iterator beg = cbegin, end = cend;
-    std::smatch sm;
-    std::regex_search(beg, end, sm, re);
-    if (sm.empty()) {
-        from = to = end;
-        return;
-    }
-    from = sm[0].first;
-    if (clazzPtr) {
-        clazzPtr->template_arg = sm[1].str();
-        clazzPtr->type = sm[3].str();
-    }
-    std::string::const_iterator lbraceIter = end;
-    for (auto iter = sm[3].second; iter != end; ++iter) {
-        if (*iter == ';') {
-            if (lbraceIter == end) {
-                // this a forward declaration of class
-                beg = iter;
-                break;
+    std::string::const_iterator class_begin, class_end;
+    while (beg < end) {
+        if (!m_exclude_class) {
+            Clazz clazz;
+            if (searchFirstClassIn(beg, end, class_begin, class_end, &clazz)) {
+                ClassParser parser(clazz, std::string(class_begin, class_end));
+                m_header->clazz_objects.emplace_back(std::move(clazz));
             }
-        } else if (*iter == '{') {
-            lbraceIter = iter;
-            break;
-        }
-    }
-
-    if (lbraceIter == end) {
-        // a forward declaration of class, should skip it
-        to = beg;
-        return;
-    }
-
-    int balance = 0;
-    std::string::const_iterator iter = lbraceIter;
-    while (iter != end) {
-        if (*iter == '{')
-            ++balance;
-        else if (*iter == '}')
-            --balance;
-        ++iter;
-        if (balance == 0) {
-            // not include brace, but \n
-            to = iter - 1;
-            return;
-        }
-    }
+        } else
+            searchFirstClassIn(beg, end, class_begin, class_end);
+        if (beg < class_begin)
+            collectMethodsBetween(beg, class_begin);
+        beg = class_end;
+    };
 }

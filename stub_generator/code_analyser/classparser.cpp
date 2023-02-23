@@ -2,7 +2,7 @@
 #include "code_analyser/parse_object/method.h"
 
 bool ClassParser::collectMethodInScope(std::string::const_iterator &beg,
-                          std::string::const_iterator &end) {
+                                       std::string::const_iterator &end) {
     if (beg == end)
         return false;
     std::string::const_iterator next,

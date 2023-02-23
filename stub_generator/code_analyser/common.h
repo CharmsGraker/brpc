@@ -31,4 +31,13 @@ deal_function_body(std::map<std::string, std::string> &mp,
                    const std::string::const_iterator &end,
                    const std::string::const_iterator &cbegin,
                    const std::string::const_iterator &cend);
+
+class Clazz;
+bool searchFirstClassIn(const std::string::const_iterator &cbegin,
+                   const std::string::const_iterator &cend,
+                   std::string::const_iterator &from,
+                   std::string::const_iterator &to,
+                   Clazz *clazzPtr = nullptr,
+                   std::string classname = "");
+
 #endif //STUB_GENERATOR_COMMON_H

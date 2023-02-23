@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "../lib/string_utils/string_utils.h"
 
 #include<cstdio>
 #include <unistd.h>
@@ -9,6 +10,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <cstring>
+#include <regex>
 
 std::string getcwd() {
     char *buffer = NULL;
@@ -28,10 +30,43 @@ std::string getcwd() {
     return "";
 }
 
+
+std::string buildAbsPath(std::string path) {
+    if (path.empty())
+        return ".";
+    if (path[0] != '/') {
+        auto pwd = getcwd();
+        path = pwd + "/" + path;
+    }
+    auto a = split(path, '/');
+    std::vector<std::string> ret;
+    int len = a.size();
+    for (int i = 0; i < len; ++i) {
+        if (a[i] == ".") {
+            continue;
+        } else if (a[i] == "..") {
+            assert(!ret.empty()); // illegal path
+            ret.pop_back();
+        } else {
+            ret.push_back(a[i]);
+        }
+    }
+
+    if (ret.empty())
+        return "/";
+
+    len = ret.size();
+    std::string ans;
+    for (int i = 0; i < len; ++i) {
+        ans += '/';
+        ans += ret[i];
+    }
+    return ans;
+}
+
 void mkdir(std::string &dir, int mode) {
     auto ret = ::mkdir(dir.c_str(), mode);
 }
-
 
 
 void mkdirs(std::string &dir) {
@@ -70,6 +105,7 @@ void create_file(const std::string &path, bool exist_ok) {
     fclose(fp);
 }
 
+
 int write(const std::string &path, const std::string &content) {
     if (!exist_file(path))
         return -1;
@@ -78,6 +114,17 @@ int write(const std::string &path, const std::string &content) {
     f.close();
 }
 
+int append(std::fstream &f, const std::string &content) {
+    f << content;
+}
+
+int append(const std::string &path, const std::string &content) {
+    if (!exist_file(path))
+        return -1;
+    std::ofstream f(path, std::ios::app);
+    f << content;
+    f.close();
+}
 
 
 template<>
@@ -116,4 +163,23 @@ std::string format(const char *format, ...) {
     vsprintf(buffer, format, args);
     va_end(args);
     return {buffer};
+}
+
+std::string getExt(std::string path) {
+    auto pos = path.rfind('.');
+    assert(pos != path.npos);
+    return path.substr(pos);
+}
+
+std::string getRelativeFromRoot(const std::string &root, const std::string &file_path) {
+    auto root_abs = buildAbsPath(root);
+    auto f_abs = buildAbsPath(file_path);
+    std::string::const_iterator beg = f_abs.cbegin(), end = f_abs.cend();
+    std::smatch sm;
+    std::string ret;
+    // remove extension
+    std::regex re(root_abs + "(.*?)(\\.(h|cpp|cc|hpp))");
+    std::regex_match(beg, end, sm, re);
+    assert(!sm.empty());
+    return sm[1].str();
 }

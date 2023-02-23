@@ -12,11 +12,11 @@
 #include "code_analyser/parse_object/constant.h"
 
 class Method {
-    std::string params = "";
     typedef std::map<std::string, std::string> container_t;
     container_t mp;
 public:
     std::string identifier = "";
+    std::string params = "";
 
     Method() {};
 
@@ -24,7 +24,8 @@ public:
         if (mp.count("identifier"))
             identifier = mp["identifier"];
     };
-    Method& operator = (container_t mp_) {
+
+    Method &operator=(container_t mp_) {
         mp = std::move(mp_);
         params = mp["params"];
         if (mp.count("identifier"))
@@ -63,6 +64,14 @@ public:
             rets.push_back(kv[2]);
         }
         return rets;
+    }
+
+    const std::string getName() const {
+        return (const_cast<std::map<std::string, std::string> &>(mp))["name"];
+    }
+
+    bool hasTemplateArg() const {
+        return ! (const_cast<std::map<std::string, std::string> &>(mp))["template_arg"].empty();
     }
 };
 

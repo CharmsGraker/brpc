@@ -2,7 +2,7 @@
 
 #include <regex>
 #include "../../lib/string_utils/string_utils.h"
-
+#include "parse_object/clazz.h"
 
 void
 deal_signature(std::map<std::string, std::string> &mp,
@@ -89,11 +89,12 @@ bool search_rpc_annotation(std::string::const_iterator &begin,
 }
 
 void deal_default_scope(const std::string &clazz_type, std::string &body) {
-    std::string scope_modifier = clazz_type == "struct" ? "public" : "private";
+    std::string scope_modifier = (clazz_type == "struct" ? "public" : "private");
     std::smatch sm;
     std::regex_search(body.cbegin(), body.cend(), sm, scope_re);
+
     if (sm.empty() || sm[1].first != body.cbegin()) {
-        body = scope_modifier + body;
+        body = scope_modifier + ":\n" + body;
     }
 }
 
@@ -124,4 +125,80 @@ deal_function_body(std::map<std::string, std::string> &mp,
     }
     mp["body"] = std::string(body_begin, body_end);
     return cur;
+}
+
+bool searchFirstClassIn(const std::string::const_iterator &cbegin,
+                        const std::string::const_iterator &cend,
+                        std::string::const_iterator &from,
+                        std::string::const_iterator &to,
+                        Clazz *clazzPtr,
+                        std::string classname) {
+    if (cbegin >= cend)
+        return false;
+    std::regex re("(//|/[\\*])*\\s*(template<(.*?)>)?\\s*(class\\b|\\bstruct\\b)\\s+?(\\w+)(.*)");
+    std::string::const_iterator beg = cbegin, end = cend;
+    std::smatch sm;
+    std::regex_search(beg, end, sm, re);
+    if (sm.empty()) {
+        from = to = end;
+        return false;
+    }
+    if(! sm[1].str().empty()) {
+        // this is an annotation
+        printf("[!] class %s has been annotated.\n",sm[5].str().c_str());
+        from = to = sm[5].second;
+        return false;
+    }
+
+    from = sm[0].first;
+
+    std::string::const_iterator lbraceIter = end;
+    for (auto iter = sm[4].second; iter != end; ++iter) {
+        if (*iter == ';') {
+            if (lbraceIter == end) {
+                // this a forward declaration of class
+                beg = iter;
+                break;
+            }
+        } else if (*iter == '{') {
+            lbraceIter = iter;
+            break;
+        }
+    }
+
+    if (lbraceIter == end) {
+        // a forward declaration of class, should skip it
+        to = beg;
+        return false;
+    }
+
+    if (!classname.empty() && classname != sm[5].str()) {
+        to = sm[5].second;
+        return false;
+    }
+    if (clazzPtr) {
+        clazzPtr->template_arg = sm[2].str();
+        clazzPtr->type = sm[4].str();
+        clazzPtr->classname = sm[5].str();
+    }
+
+    int balance = 0;
+    std::string::const_iterator iter = lbraceIter;
+    while (iter != end) {
+        if (*iter == '{')
+            ++balance;
+        else if (*iter == '}')
+            --balance;
+        if (balance == 0) {
+            // not include brace, but \n
+            // clip the class body
+            from = lbraceIter + 1;
+            to = iter;
+            printf("[*] class %s has been successfully found.\n",sm[5].str().c_str());
+
+            return true;
+        }
+        ++iter;
+    }
+    return false;
 }

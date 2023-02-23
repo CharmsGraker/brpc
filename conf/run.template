@@ -1,3 +1,5 @@
+#include<iostream>
+
 int main() {
     buttonrpc server;
     server.as_server(5555);

@@ -42,14 +42,99 @@ include CMakeFiles/rules.ninja
 cmake_ninja_workdir = /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug/
 
 #############################################
-# Utility command for edit_cache
+# Utility command for rebuild_cache
 
-build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
-  COMMAND = cd /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug && /opt/software/clion-2021.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-  DESC = No interactive CMake dialog available...
+build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug && /opt/software/clion-2021.3/bin/cmake/linux/bin/cmake --regenerate-during-build -S/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14 -B/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug
+  DESC = Running CMake to regenerate build system...
+  pool = console
   restat = 1
 
-build edit_cache: phony CMakeFiles/edit_cache.util
+build rebuild_cache: phony CMakeFiles/rebuild_cache.util
+
+# =============================================================================
+# Object build statements for EXECUTABLE target buttonrpc
+
+
+#############################################
+# Order-only phony target for buttonrpc
+
+build cmake_object_order_depends_target_buttonrpc: phony || CMakeFiles/buttonrpc.dir
+
+build CMakeFiles/buttonrpc.dir/rpc_build/start_server.cpp.o: CXX_COMPILER__buttonrpc_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/rpc_build/start_server.cpp || cmake_object_order_depends_target_buttonrpc
+  DEFINES = -DZMQ_BUILD_DRAFT_API
+  DEP_FILE = CMakeFiles/buttonrpc.dir/rpc_build/start_server.cpp.o.d
+  FLAGS = -g -std=gnu++14
+  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/.
+  OBJECT_DIR = CMakeFiles/buttonrpc.dir
+  OBJECT_FILE_DIR = CMakeFiles/buttonrpc.dir/rpc_build
+
+build CMakeFiles/buttonrpc.dir/auto-generated/runtime_class.cpp.o: CXX_COMPILER__buttonrpc_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/auto-generated/runtime_class.cpp || cmake_object_order_depends_target_buttonrpc
+  DEFINES = -DZMQ_BUILD_DRAFT_API
+  DEP_FILE = CMakeFiles/buttonrpc.dir/auto-generated/runtime_class.cpp.o.d
+  FLAGS = -g -std=gnu++14
+  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/.
+  OBJECT_DIR = CMakeFiles/buttonrpc.dir
+  OBJECT_FILE_DIR = CMakeFiles/buttonrpc.dir/auto-generated
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target buttonrpc
+
+
+#############################################
+# Link the executable buttonrpc
+
+build buttonrpc: CXX_EXECUTABLE_LINKER__buttonrpc_Debug CMakeFiles/buttonrpc.dir/rpc_build/start_server.cpp.o CMakeFiles/buttonrpc.dir/auto-generated/runtime_class.cpp.o | /usr/local/lib/libzmq.so.5.2.5
+  FLAGS = -g
+  LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  /usr/local/lib/libzmq.so.5.2.5  -lpthread  -lrt
+  OBJECT_DIR = CMakeFiles/buttonrpc.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = buttonrpc
+  TARGET_PDB = buttonrpc.dbg
+
+# =============================================================================
+# Object build statements for EXECUTABLE target auto_client
+
+
+#############################################
+# Order-only phony target for auto_client
+
+build cmake_object_order_depends_target_auto_client: phony || CMakeFiles/auto_client.dir
+
+build CMakeFiles/auto_client.dir/example/auto_client.cpp.o: CXX_COMPILER__auto_client_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/example/auto_client.cpp || cmake_object_order_depends_target_auto_client
+  DEFINES = -DZMQ_BUILD_DRAFT_API
+  DEP_FILE = CMakeFiles/auto_client.dir/example/auto_client.cpp.o.d
+  FLAGS = -g -std=gnu++14
+  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/.
+  OBJECT_DIR = CMakeFiles/auto_client.dir
+  OBJECT_FILE_DIR = CMakeFiles/auto_client.dir/example
+
+build CMakeFiles/auto_client.dir/auto-generated/impl.cpp.o: CXX_COMPILER__auto_client_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/auto-generated/impl.cpp || cmake_object_order_depends_target_auto_client
+  DEFINES = -DZMQ_BUILD_DRAFT_API
+  DEP_FILE = CMakeFiles/auto_client.dir/auto-generated/impl.cpp.o.d
+  FLAGS = -g -std=gnu++14
+  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/.
+  OBJECT_DIR = CMakeFiles/auto_client.dir
+  OBJECT_FILE_DIR = CMakeFiles/auto_client.dir/auto-generated
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target auto_client
+
+
+#############################################
+# Link the executable auto_client
+
+build auto_client: CXX_EXECUTABLE_LINKER__auto_client_Debug CMakeFiles/auto_client.dir/example/auto_client.cpp.o CMakeFiles/auto_client.dir/auto-generated/impl.cpp.o | /usr/local/lib/libzmq.so.5.2.5
+  FLAGS = -g
+  LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  /usr/local/lib/libzmq.so.5.2.5  -lpthread  -lrt
+  OBJECT_DIR = CMakeFiles/auto_client.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = auto_client
+  TARGET_PDB = auto_client.dbg
 
 # =============================================================================
 # Object build statements for EXECUTABLE target client
@@ -87,49 +172,14 @@ build client: CXX_EXECUTABLE_LINKER__client_Debug CMakeFiles/client.dir/example/
 
 
 #############################################
-# Utility command for rebuild_cache
+# Utility command for edit_cache
 
-build CMakeFiles/rebuild_cache.util: CUSTOM_COMMAND
-  COMMAND = cd /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug && /opt/software/clion-2021.3/bin/cmake/linux/bin/cmake --regenerate-during-build -S/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14 -B/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug
-  DESC = Running CMake to regenerate build system...
-  pool = console
+build CMakeFiles/edit_cache.util: CUSTOM_COMMAND
+  COMMAND = cd /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug && /opt/software/clion-2021.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+  DESC = No interactive CMake dialog available...
   restat = 1
 
-build rebuild_cache: phony CMakeFiles/rebuild_cache.util
-
-# =============================================================================
-# Object build statements for EXECUTABLE target buttonrpc
-
-
-#############################################
-# Order-only phony target for buttonrpc
-
-build cmake_object_order_depends_target_buttonrpc: phony || CMakeFiles/buttonrpc.dir
-
-build CMakeFiles/buttonrpc.dir/example/main_server.cpp.o: CXX_COMPILER__buttonrpc_Debug /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/example/main_server.cpp || cmake_object_order_depends_target_buttonrpc
-  DEFINES = -DZMQ_BUILD_DRAFT_API
-  DEP_FILE = CMakeFiles/buttonrpc.dir/example/main_server.cpp.o.d
-  FLAGS = -g -std=gnu++14
-  INCLUDES = -I/home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/.
-  OBJECT_DIR = CMakeFiles/buttonrpc.dir
-  OBJECT_FILE_DIR = CMakeFiles/buttonrpc.dir/example
-
-
-# =============================================================================
-# Link build statements for EXECUTABLE target buttonrpc
-
-
-#############################################
-# Link the executable buttonrpc
-
-build buttonrpc: CXX_EXECUTABLE_LINKER__buttonrpc_Debug CMakeFiles/buttonrpc.dir/example/main_server.cpp.o | /usr/local/lib/libzmq.so.5.2.5
-  FLAGS = -g
-  LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  /usr/local/lib/libzmq.so.5.2.5  -lpthread  -lrt
-  OBJECT_DIR = CMakeFiles/buttonrpc.dir
-  POST_BUILD = :
-  PRE_LINK = :
-  TARGET_FILE = buttonrpc
-  TARGET_PDB = buttonrpc.dbg
+build edit_cache: phony CMakeFiles/edit_cache.util
 
 # =============================================================================
 # Target aliases.
@@ -142,7 +192,7 @@ build buttonrpc: CXX_EXECUTABLE_LINKER__buttonrpc_Debug CMakeFiles/buttonrpc.dir
 #############################################
 # Folder: /home/nekonoyume/codeDev/CPlusPlus/buttonrpc_cpp14/cmake-build-debug
 
-build all: phony client buttonrpc
+build all: phony buttonrpc auto_client client
 
 # =============================================================================
 # Built-in targets

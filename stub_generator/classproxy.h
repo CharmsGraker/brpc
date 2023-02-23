@@ -8,23 +8,35 @@
 #include "code_analyser/classparser.h"
 #include "code_generator.h"
 
+
+extern std::string buildRPCName(const Clazz &clazz, Method method);
+
 class ClassProxy : public ClassParser {
     std::string m_proxy_classname;
+    Clazz proxyClazz;
+
 public:
     friend CodeGenerator;
 
-    ClassProxy(std::string proxy_name, const std::string &classname,
-               const std::string &classpath) : m_proxy_classname(proxy_name), ClassParser(classname, classpath) {
+    ClassProxy(Clazz & cls) : m_proxy_classname(cls.classname + "_proxy"), ClassParser(cls) {
         char buffer[1024];
         std::set<std::string> visited;
-        clazz.addMember("impl",
-                        clazz.classname,
-                        clazz.templateParams(),
-                        REFERENCE_TYPE::POINTER,
-                        ACCESS::PRIVATE,
-                        clazz.type);
-
-        for (auto &[identifier, method]: clazz.methods) {
+        proxyClazz = clazz;
+        // the clazz member will invoke copy constructor, but it won't affect the cls
+        // so we call copy constructor explicitly
+        cls = clazz;
+        proxyClazz.classname = m_proxy_classname;
+        proxyClazz.addMember("client",
+                             "buttonrpc",
+                             "",
+                             REFERENCE_TYPE::POINTER,
+                             ACCESS::PRIVATE,
+                             "class");
+        auto methods = clazz.methods;
+        for (auto &&iter = methods.begin(); iter != methods.end();) {
+            auto &&identifier = iter->first;
+            auto &&method = iter->second;
+            auto &&succ = next(iter);
             assert(!identifier.empty());
             if (visited.count(identifier))
                 continue;
@@ -42,40 +54,33 @@ public:
             auto &&r = split(identifier, '^');
             auto name = r[0];
             auto params = r.size() == 1 ? "" : r[1];
-
+            // constructor
             if (name == clazz.classname) {
-                // constructor
-                auto &&newId = m_proxy_classname + "^" + params;
-                clazz.methods[newId] = clazz.methods[identifier];
-                clazz.methods.erase(identifier);
-                auto &e = clazz.methods[newId];
-                e[identifier] = identifier;
-                e["return_type"].clear();
-                e["name"] = m_proxy_classname;
-                e["body"] = format("impl = new %s(%s);",
-                                   clazz.nameWithTemplateParams().c_str(), pv_string.c_str());
-                e["extend_constructor"].clear();
-                visited.insert(newId);
+                methods.erase(identifier);
             } else {
-                if (method.count("modifier") && method["modifier"] == "static") {
-                    n += sprintf(buffer + n, "return %s::%s(%s);",
-                                 clazz.nameWithTemplateParams().c_str(), name.c_str(), pv_string.c_str());
-                } else {
-                    n += sprintf(buffer + n, "return impl->%s(%s);",
-                                 name.c_str(), pv_string.c_str());
+                auto assertStat = "assert(client);\n";
+                auto invokeStat = format("client->call<%s>(\"%s\"%s).val();",
+                                         method["return_type"].c_str(),
+                                         buildRPCName(clazz, method).c_str(),
+                                         (pv_string.empty() ? "" : (", " + pv_string).c_str()));
+                if (method["return_type"] != "void") {
+                    invokeStat = "return " + invokeStat;
                 }
-                method["body"] = std::string(buffer);
+                method["body"] = std::string(assertStat + invokeStat);
                 visited.insert(identifier);
             }
+            iter = succ;
         }
+        proxyClazz.methods = methods;
+        proxyClazz.addConstruct("buttonrpc * c", "client = c;");
+        proxyClazz.addConstruct();
 
-        clazz.classname = proxy_name;
-        clazz.addDeconstruct("delete impl;");
+//        proxyClazz.addDeconstruct("delete impl;");
+    }
+
+    Clazz &getProxyClass() {
+        return proxyClazz;
     }
 };
-
-CodeGenerator::CodeGenerator(ClassProxy *w) :
-        CodeGenerator(w->clazz) {
-}
 
 #endif //STUB_GENERATOR_CLASSPROXY_H

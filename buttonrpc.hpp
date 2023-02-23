@@ -14,9 +14,30 @@
 #include <functional>
 #include <memory>
 #include <zmq.hpp>
+#include <iostream>
 #include "Serializer.hpp"
-#include "runtime_class.h"
+#include "auto-generated/runtime_class.h"
 
+
+template<class C>
+struct release_guard {
+    release_guard(release_guard &) = delete;
+
+    release_guard(release_guard &&) = delete;
+
+    release_guard & operator = (release_guard) = delete;
+
+    release_guard(C *pointer) : p(pointer) {
+
+    }
+
+    ~release_guard() {
+        delete p;
+    }
+
+private:
+    C *p = nullptr;
+};
 
 class Serializer;
 
@@ -45,7 +66,7 @@ void package_params(Serializer &ds, const std::tuple<Args...> &t) {
 
 // 用tuple做参数调用函数模板类
 template<typename Function, typename Tuple, std::size_t... Index>
-decltype(auto) invoke_impl(Function &&func, Tuple && arg_tuple, std::index_sequence<Index...>) {
+decltype(auto) invoke_impl(Function &&func, Tuple &&arg_tuple, std::index_sequence<Index...>) {
     return func(std::get<Index>(std::forward<Tuple>(arg_tuple))...);
 }
 
@@ -64,7 +85,7 @@ call_helper(F f, ArgsTuple args) {
 }
 
 template<typename R, typename F, typename ArgsTuple>
-typename std::enable_if<! std::is_same<R, void>::value, typename type_xx<R>::type>::type
+typename std::enable_if<!std::is_same<R, void>::value, typename type_xx<R>::type>::type
 call_helper(F f, ArgsTuple args) {
     return invoke(f, args);
 }
@@ -202,14 +223,13 @@ private:
         args_type args = ds.get_tuple<args_type>(std::make_index_sequence<N>{});
 
         auto ff = [&](Params... ps) -> R {
-            if(!s) {
+            if (!s) {
                 printf("create new object\n");
                 std::cout << getClassName<>(s) << std::endl;
                 s = new S(); // must implement trivial constructor
             }
-            auto ret = (s->*func)(ps...);
-            delete s;
-            return ret;
+            release_guard<S> guard(s);
+            return (s->*func)(ps...);
         };
         typename type_xx<R>::type r = call_helper<R>(ff, args);
 

@@ -1,6 +1,4 @@
 #include "parse_object.h"
-#include "method.h"
-
 
 void
 ParseObject::addMethod(const std::string &name,

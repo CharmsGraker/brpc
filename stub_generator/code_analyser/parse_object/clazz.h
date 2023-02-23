@@ -8,12 +8,16 @@ struct Clazz : public ParseObject {
     std::string extend_modifier;
     std::string type;
     std::string classname;
-    Method * deconstruct = nullptr;
-    bool done;
+    Method *deconstruct = nullptr;
 
-    Clazz() : done(false) {};
+    Clazz() : Clazz("") {};
 
-    void addDeconstruct(const std::string & body);
+    Clazz(const std::string &p) : ParseObject(p) {};
+
+    Clazz(const std::string &clsname, const std::string &p) : classname(clsname), ParseObject(p) {};
+
+    void addDeconstruct(const std::string &body);
+
     std::string nameWithTemplateParams() {
         if (template_arg.empty())
             return classname;
@@ -22,7 +26,7 @@ struct Clazz : public ParseObject {
 
     std::string templateParams() {
         auto len = template_arg.length();
-        if(len <= 0)
+        if (len <= 0)
             return {};
         size_t t_i = template_arg.find('<'), t_j = len;
         assert(t_i != template_arg.npos);
@@ -53,4 +57,5 @@ struct Clazz : public ParseObject {
 
     ~Clazz();
 
+    void addConstruct(const std::string &params = "", const std::string &body = "");
 };

@@ -20,7 +20,7 @@ struct base {
 
 class testClass : public base {
 public:
-    testClass(int b1) : base(b1) {}
+    testClass() : base(0) {}
 
     // @RPC_NOT_INJECT
     static int m1() {
@@ -31,15 +31,18 @@ public:
     }
 
     // @RPC_INJECT
-    void operator()();
+    void operator()() {
+
+    };
 
     template<class L, class R>
     int m2(L ll, double &b1, int c2) {
 
     }
 
-    void m3(double &b1) {
-
+    int m3(double &b1) {
+        printf("hahahah\n");
+        return 2;
     };
 
     double m4(double &b1) {
